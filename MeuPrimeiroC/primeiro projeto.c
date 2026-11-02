@@ -39,7 +39,18 @@ int main() {
     char build_windows[256];
     DWORD tamanho_build_windows = sizeof(build_windows);
 
+    //processador
+	HKEY chave_processador = NULL;
+	char nome_processador[256];
+	DWORD tamanho_nome_processador = sizeof(nome_processador);
+	DWORD tipo_processador;
+
+	DWORD tamanho_buffer = 0;
+	DWORD quantidade_nucleos = 0;
     do {
+        SYSTEM_INFO info_sistema;
+        
+
         tamanho = sizeof(nome_pc);
 
         system("cls");
@@ -201,10 +212,66 @@ int main() {
             }
             break;
 
-            // Processador - ainda não implementado
-        case 3:
-            printf("\nInformações do processador ainda não implementadas");
+            // Processador
+        case 3: {
+
+            LONG resultado_processador = RegOpenKeyExA(
+                HKEY_LOCAL_MACHINE,
+                "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
+                0,
+                KEY_READ,
+                &chave_processador
+            );
+
+            if (resultado_processador == ERROR_SUCCESS) {
+                //recialização do tamanho do buffer
+                tamanho_nome_processador = sizeof(nome_processador);
+
+                // Consulta o nome do processador
+                LONG consulta_processador = RegQueryValueExA(
+                    chave_processador,
+                    "ProcessorNameString",
+                    NULL,
+                    &tipo_processador,
+                    (LPBYTE)nome_processador,
+                    &tamanho_nome_processador
+                );
+                // verifica se a consulta foi bem-sucedida e exibe o resultado
+                if (consulta_processador == ERROR_SUCCESS) {
+                    printf("\n(Inspetor de Processador)");
+                    printf("\n\nNome do Processador: %s", nome_processador);
+                }
+                else {
+                    printf("\nErro ao consultar ProcessorNameString: %ld", consulta_processador);
+                }
+                RegCloseKey(chave_processador);
+            }
+            else {
+                printf("\nErro ao abrir a chave do processador: %ld", resultado_processador);
+            }
+            GetNativeSystemInfo(&info_sistema);
+            if (info_sistema.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) {
+                printf("\nArquitetura: x64");
+            }
+            else if (info_sistema.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL) {
+                printf("\nArquitetura: x86");
+            }
+            else if (info_sistema.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM) {
+                printf("\nArquitetura: ARM");
+            }
+            else if (info_sistema.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64) {
+                printf("\nArquitetura: ARM64");
+            }
+            else {
+                printf("\nArquitetura: Desconhecida");
+            }
+            DWORD Threads = info_sistema.dwNumberOfProcessors;
+
+            printf("\nQuantidade de Threads : %lu", Threads);
+
+		}// fim do case 3
             voltar(&opcao[1]);
+
             break;
 
             // Créditos
