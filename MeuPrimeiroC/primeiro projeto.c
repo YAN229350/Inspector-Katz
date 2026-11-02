@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <winreg.h>
 
 void voltar(int* op) {
     printf("\n\nOpção 1 (Voltar)");
@@ -26,10 +27,18 @@ int main() {
     // Variáveis
     int opcao[2] = { 0 };
 
-	HKEY Chave_windows;
-	char nome_windows[256];
-	DWORD tamanho_nome_windows = sizeof(nome_windows);
+    //windows
+    HKEY chave_windows = NULL;
+    char nome_windows[256];
+    DWORD tamanho_nome_windows = sizeof(nome_windows);
     DWORD tipo;
+
+    char versao_windows[256];
+    DWORD tamanho_versao_windows = sizeof(versao_windows);
+
+    char build_windows[256];
+    DWORD tamanho_build_windows = sizeof(build_windows);
+
     do {
         tamanho = sizeof(nome_pc);
 
@@ -64,8 +73,10 @@ int main() {
 
             // Informações básicas do sistema
         case 1: {
+            printf("\n(Inspetor de Informações Básicas do Sistema)");
+
             if (GetComputerNameA(nome_pc, &tamanho)) {
-                printf("\nNome do Desktop: %s", nome_pc);
+                printf("\n\nNome do Desktop: %s", nome_pc);
             }
             else {
                 DWORD erro = GetLastError();
@@ -73,6 +84,86 @@ int main() {
                 printf("\n\nErro: %lu", erro);
             }
 
+            // abre a chave do registro do Windows para obter o nome do produto
+            LONG resultado = RegOpenKeyExA(
+                HKEY_LOCAL_MACHINE,
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+                0,
+                KEY_READ,
+                &chave_windows
+            );
+
+            // Verifica se a chave foi aberta com sucesso
+            if (resultado == ERROR_SUCCESS) {
+
+                // Reinicializa o tamanho do buffer
+                tamanho_nome_windows = sizeof(nome_windows);
+
+                // Consulta o nome do produto
+                LONG consulta = RegQueryValueExA(
+                    chave_windows,
+                    "ProductName",
+                    NULL,
+                    &tipo,
+                    (LPBYTE)nome_windows,
+                    &tamanho_nome_windows
+                );
+                // Reinicializa o tamanho do buffer
+                tamanho_versao_windows = sizeof(versao_windows);
+
+				// Consulta a versão do Windows
+                LONG consulta_versao = RegQueryValueExA(
+                    chave_windows,
+                    "DisplayVersion",
+                    NULL,
+                    &tipo,
+                    (LPBYTE)versao_windows,
+                    &tamanho_versao_windows
+                );
+
+                // Reinicializa o tamanho do buffer
+                tamanho_build_windows = sizeof(build_windows);
+
+				// Consulta o número da build do Windows
+                LONG consulta_build = RegQueryValueExA(
+                    chave_windows,
+                    "CurrentBuildNumber",
+                    NULL,
+                    &tipo,
+                    (LPBYTE)build_windows,
+                    &tamanho_build_windows
+                );
+				
+				// Verifica se a consulta foi bem-sucedida e exibe o resultado
+                if (consulta == ERROR_SUCCESS) {
+                    printf("\nNome do Windows: %s", nome_windows);
+                }
+                else {
+                    printf("\nErro ao consultar ProductName: %ld", consulta);
+                }
+
+				// Consulta a versão do Windows e exibe o resultado
+                if (consulta_versao == ERROR_SUCCESS) {
+                    printf("\nVersão do Windows: %s", versao_windows);
+                }
+                else {
+                    printf("\nErro ao consultar DisplayVersion: %ld", consulta_versao);
+                }
+
+				// Consulta o número da build do Windows e exibe o resultado
+				if (consulta_build == ERROR_SUCCESS) {
+					printf("\nNúmero da Build do Windows: %s", build_windows);
+				}
+				else {
+					printf("\nErro ao consultar CurrentBuildNumber: %ld", consulta_build);
+				}
+
+                // Fecha a chave após utilizá-la
+                RegCloseKey(chave_windows);
+            }
+            else {
+                printf("\nErro ao abrir a chave: %ld", resultado);
+            }
             voltar(&opcao[1]);
             break;
         }
@@ -112,7 +203,7 @@ int main() {
 
             // Processador - ainda não implementado
         case 3:
-            printf("\nInformações do processador ainda não implementadas.");
+            printf("\nInformações do processador ainda não implementadas");
             voltar(&opcao[1]);
             break;
 
