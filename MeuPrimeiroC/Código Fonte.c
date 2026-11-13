@@ -47,6 +47,8 @@ int main() {
 
 	DWORD tamanho_buffer = 0;
 	DWORD quantidade_nucleos = 0;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer = NULL;
+    DWORD deslocamento = 0;
     do {
         SYSTEM_INFO info_sistema;
         
@@ -268,6 +270,61 @@ int main() {
             DWORD Threads = info_sistema.dwNumberOfProcessors;
 
             printf("\nQuantidade de Threads : %lu", Threads);
+
+			//reicialização do tamanho do buffer
+            tamanho_buffer = 0;
+
+			// Chamada inicial para obter o tamanho necessário do buffer
+            BOOL consulta_tamanho = GetLogicalProcessorInformationEx(
+                RelationProcessorCore,
+                NULL,
+                &tamanho_buffer
+            );
+
+            if (consulta_tamanho || GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
+                printf("\nErro ao consultar o tamanho do buffer: %lu", GetLastError());
+                voltar(&opcao[1]);
+                break;
+            }
+
+            buffer = malloc(tamanho_buffer);
+
+			if (buffer == NULL) {
+				printf("\nErro: não foi possível alocar memória para o buffer");
+				voltar(&opcao[1]);
+				break;
+			}
+
+            if (!GetLogicalProcessorInformationEx(
+                RelationProcessorCore,
+                buffer,
+                &tamanho_buffer
+            )) {
+                printf("\nErro ao consultar os núcleos: %lu", GetLastError());
+                free(buffer);
+                buffer = NULL;
+                voltar(&opcao[1]);
+                break;
+            }
+
+            quantidade_nucleos = 0;
+            deslocamento = 0;
+
+            while (deslocamento < tamanho_buffer) {
+
+                PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX registro =
+                    (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)
+                    ((BYTE*)buffer + deslocamento);
+
+                if (registro->Relationship == RelationProcessorCore) {
+                    quantidade_nucleos++;
+                }
+
+                deslocamento += registro->Size;
+            }
+            printf("\nQuantidade de nucleos fisicos: %lu", quantidade_nucleos);
+            free(buffer);
+            buffer = NULL;
 
 		}// fim do case 3
             voltar(&opcao[1]);
